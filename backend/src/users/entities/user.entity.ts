@@ -7,6 +7,7 @@ import {
   OneToMany,
   UpdateDateColumn,
 } from 'typeorm';
+import { IsOptional, IsString, IsBoolean, IsObject } from 'class-validator';
 import { Exclude } from 'class-transformer';
 import { RefreshToken } from './refresh-token.entity';
 
@@ -20,12 +21,25 @@ export class User {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ type: 'varchar', length: 100 })
-  fullName: string;
 
-  @Index()
-  @Column({ type: 'varchar', unique: true })
-  email: string;
+  // Encrypted PII fields
+  @Column({ type: 'varchar', nullable: true })
+  encryptedFullName: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  encryptedEmail: string;
+
+  // Wallet linking
+  @Column({ type: 'varchar', nullable: true })
+  walletAddress: string;
+
+  // Profile completion tracking
+  @Column({ default: false })
+  profileCompleted: boolean;
+
+  // User preferences (JSON)
+  @Column({ type: 'json', nullable: true })
+  preferences: Record<string, any>;
 
   @Column({ default: true })
   isActive: boolean;
@@ -55,9 +69,6 @@ export class User {
   @Column({ nullable: true })
   @Exclude()
   twoFactorSecret: string;
-
-  @Column({ nullable: true })
-  walletAddress: string;
 
   @CreateDateColumn()
   createdAt: Date;

@@ -18,6 +18,7 @@ import { IpfsModule } from './ipfs/ipfs.module';
     // 1. Load the .env file
     ConfigModule.forRoot({
       isGlobal: true, // Makes the .env variables available everywhere
+      envFilePath: '.env',
     }),
 
     // 2. Setup the TypeORM connection
@@ -30,8 +31,8 @@ import { IpfsModule } from './ipfs/ipfs.module';
         port: configService.get<number>('DB_PORT'),
         username: configService.get<string>('DB_USERNAME'),
         password: configService.get<string>('DB_PASSWORD'),
-        database: configService.get<string>('DB_DATABASE'),
-        entities: [User], // Add your entities here
+        database: configService.get<string>('DB_NAME'),
+        entities: ['src/**/*.entity.ts', 'dist/**/*.entity.js'],
         synchronize: false, // Use migrations instead
         logging: true,
         extra: {

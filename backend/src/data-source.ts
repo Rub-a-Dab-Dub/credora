@@ -21,7 +21,7 @@ export const dataSourceOptions: DataSourceOptions = {
   username: getEnv('DB_USERNAME'),
   password: getEnv('DB_PASSWORD'),
   database: getEnv('DB_DATABASE'),
-  entities: ['dist/**/*.entity.js'],
+  entities: ['src/**/*.entity.ts'],
   migrations: ['dist/migration/*.js'],
   logging: true,
   synchronize: false,
