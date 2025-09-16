@@ -1,5 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { type Transaction, AnalysisType, RiskLevel } from "../entities"
+import { Transaction } from "../entities/transaction.entity";
+import { TransactionAnalysis, AnalysisType, RiskLevel } from "../entities/transaction-analysis.entity";
+import { TransactionType } from "../entities/transaction-analysis.entity"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
 
 export interface CategorizationResult {
   transactionId: string
@@ -23,6 +27,14 @@ export interface CategorizationResult {
 @Injectable()
 export class CategorizationService {
   private readonly logger = new Logger(CategorizationService.name)
+  
+  constructor(
+      @InjectRepository(Transaction)
+      private readonly txRepo: Repository<Transaction>,
+      @InjectRepository(TransactionAnalysis)
+      private readonly analysisRepo: Repository<TransactionAnalysis>,
+    ) {}
+
 
   // Predefined category mappings for merchant-based categorization
   private readonly merchantCategories = {
@@ -166,6 +178,25 @@ export class CategorizationService {
       recommendations,
     }
   }
+  async categorize(transaction: Transaction): Promise<TransactionAnalysis> {
+    const historical = await this.txRepo.find({ where: { bankAccountId: transaction.bankAccountId } })
+
+    const result = await this.categorizeTransaction(transaction, historical)
+
+    const analysis = this.analysisRepo.create({
+      transactionId: transaction.id,
+      userId: transaction.bankAccount?.id || "unknown", // adjust if you store userId elsewhere
+      type: AnalysisType.CATEGORIZATION,
+      confidence: result.confidence,
+      riskLevel: result.riskLevel,
+      score: result.score,
+      data: result, // store full result JSON
+      transaction,
+    })
+
+    return this.analysisRepo.save(analysis)
+  }
+
 
   private extractFeatures(transaction: Transaction, historicalTransactions: Transaction[]): Record<string, any> {
     return {
@@ -178,7 +209,7 @@ export class CategorizationService {
       location: transaction.location || "",
       merchantCategory: transaction.merchantCategory || "",
       historicalCategoryFrequency: this.getHistoricalCategoryFrequency(
-        transaction.merchantName,
+        transaction.merchantName || "",
         historicalTransactions,
       ),
       amountRange: this.getAmountRange(Number(transaction.amount)),
@@ -290,7 +321,7 @@ export class CategorizationService {
     historicalTransactions
       .filter((t) => t.merchantName === merchantName && t.category)
       .forEach((t) => {
-        frequency[t.category] = (frequency[t.category] || 0) + 1
+        frequency[t.category|| "uncategorized"] = (frequency[t.category|| "uncategorized"] || 0) + 1
       })
 
     return frequency
@@ -311,7 +342,7 @@ export class CategorizationService {
   }
 
   private generateInsights(transaction: Transaction, result: any, historicalTransactions: Transaction[]): string[] {
-    const insights = []
+    const insights:string[] = []
 
     if (result.confidence < 0.5) {
       insights.push("Low confidence in category prediction - manual review recommended")
@@ -327,7 +358,7 @@ export class CategorizationService {
   }
 
   private generateRecommendations(transaction: Transaction, result: any): string[] {
-    const recommendations = []
+    const recommendations:string[] = []
 
     if (result.confidence < 0.7) {
       recommendations.push("Consider adding merchant category information for better accuracy")

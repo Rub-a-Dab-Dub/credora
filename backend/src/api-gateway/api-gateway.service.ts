@@ -302,25 +302,31 @@ private createProxyInstance(targetUrl: string): any {
     target,
     changeOrigin: true,
     pathRewrite: {
-      '^/api-gateway/proxy': '', 
+      '^/api-gateway/proxy': '',
     },
-    onProxyError: (err: any, req: any, res: any) => { 
-      this.logger.error('Proxy middleware error', err);
-      res.status(502).json({
-        error: 'Bad Gateway',
-        message: 'Failed to proxy request',
-      });
-    },
-    onProxyReq: (proxyReq: { setHeader: (arg0: string, arg1: string) => void; }, req: any, res: any) => {
-      proxyReq.setHeader('X-Forwarded-By', 'Credora-API-Gateway');
-    },
-    onProxyRes: (proxyRes: { headers: { [x: string]: string; }; }, req: any, res: any) => {
-      proxyRes.headers['Access-Control-Allow-Origin'] = '*';
-      proxyRes.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS';
-      proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key';
+    on: {
+      proxyReq: (proxyReq, req, res) => {
+        proxyReq.setHeader('X-Forwarded-By', 'Credora-API-Gateway');
+      },
+      proxyRes: (proxyRes, req, res) => {
+        proxyRes.headers['Access-Control-Allow-Origin'] = '*';
+        proxyRes.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS';
+        proxyRes.headers['Access-Control-Allow-Headers'] = 'Content-Type, Authorization, X-API-Key';
+      },
+      error: (err, req, res: any) => {
+        this.logger.error('Proxy middleware error', err);
+        if (!res.headersSent) {
+          res.status(502).json({
+            error: 'Bad Gateway',
+            message: 'Failed to proxy request',
+          });
+        }
+      },
     },
   });
 }
+
+
 private generateParameters(path: string): any[] {
   const parameters: any[] = [];
   

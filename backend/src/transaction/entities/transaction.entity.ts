@@ -1,51 +1,87 @@
 import { BankAccount } from 'src/banking/entities/bank-account.entity';
+import { TransactionAnalysis } from "../../transaction-analysis/entities/transaction-analysis.entity"
 import {
   Entity,
   PrimaryGeneratedColumn,
   Column,
+  CreateDateColumn,
+  UpdateDateColumn,
   ManyToOne,
   JoinColumn,
   Index,
-  CreateDateColumn,
-} from 'typeorm';
+  OneToMany,
+} from 'typeorm'
+
+export enum TransactionType {
+  DEBIT = 'debit',
+  CREDIT = 'credit',
+}
 
 @Entity({ name: 'transactions' })
 export class Transaction {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id: string
 
   @Index()
   @Column()
-  providerTransactionId: string; // external id from provider
+  providerTransactionId: string
 
-  @ManyToOne(() => BankAccount)
+  @ManyToOne(() => BankAccount, { nullable: true })
   @JoinColumn({ name: 'bankAccountId' })
-  bankAccount: BankAccount;
-
-  @Column()
-  bankAccountId: string;
-
-  @Column({ type: 'date' })
-  date: string;
-
-  @Column('decimal', { precision: 18, scale: 2 })
-  amount: number;
-
-  @Column()
-  currency: string;
+  bankAccount?: BankAccount
 
   @Column({ nullable: true })
-  merchantName?: string;
+  bankAccountId?: string
+
+  // date stored as ISO string or date
+  @Column({ type: 'timestamptz', nullable: true })
+  transactionDate?: string
+
+
+  @Column({ name: "user_id" })
+  userId: string
+
+
+  @Column('decimal', { precision: 18, scale: 2, nullable: true })
+  amount?: number
 
   @Column({ nullable: true })
-  rawDescription?: string;
+  currency?: string
 
   @Column({ nullable: true })
-  category?: string;
+  merchantName?: string
+
+  @Column({ nullable: true })
+  merchantCategory?: string
+
+  @Column({ nullable: true })
+  rawDescription?: string
+
+  @Column({ nullable: true })
+  description?: string
+
+  @Column({ nullable: true })
+  category?: string
+
+  @Column({ nullable: true })
+  channel?: string
+
+  @Column({ nullable: true })
+  location?: string
+
+  @Column({ type: 'enum', enum: TransactionType, nullable: true })
+  type?: TransactionType
 
   @Column({ default: false })
-  pending: boolean;
+  pending?: boolean
 
-  @CreateDateColumn()
-  createdAt: Date;
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt?: Date
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt?: Date
+
+  // Relation back to analyses
+  @OneToMany(() => TransactionAnalysis, (analysis) => analysis.transaction)
+  analyses?: TransactionAnalysis[]
 }

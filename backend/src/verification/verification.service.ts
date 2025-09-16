@@ -38,7 +38,7 @@ export class VerificationService {
   }
 
   // Multi-provider fallback logic
-  async performVerification(verificationData: VerificationRequestDto): Promise<VerificationResponseDto> {
+  async performVerification(verificationData: VerificationRequestDto): Promise<VerificationResponseDto| undefined> {
     try {
       const jumioResult = await this.verifyWithJumio(verificationData);
       if (jumioResult.verificationStatus === 'verified') {
@@ -46,6 +46,7 @@ export class VerificationService {
       }
     } catch (error) {
       console.error('Jumio failed, falling back to Onfido');
+      return this.verifyWithOnfido(verificationData);
     }
 
     try {
@@ -55,6 +56,9 @@ export class VerificationService {
       }
     } catch (error) {
       console.error('Both providers failed');
+      return 
     }
+  return
   }
 }
+

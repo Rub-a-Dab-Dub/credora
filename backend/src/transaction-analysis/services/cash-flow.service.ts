@@ -1,5 +1,10 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { type Transaction, AnalysisType, RiskLevel, TransactionType } from "../entities"
+import { Transaction } from "../entities/transaction.entity";
+import { TransactionAnalysis, AnalysisType, RiskLevel } from "../entities/transaction-analysis.entity";
+import { TransactionType } from "../entities/transaction-analysis.entity"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+
 
 export interface CashFlowResult {
   transactionId: string
@@ -28,6 +33,13 @@ export interface CashFlowResult {
 @Injectable()
 export class CashFlowService {
   private readonly logger = new Logger(CashFlowService.name)
+
+  constructor(
+    @InjectRepository(Transaction)
+    private readonly txRepo: Repository<Transaction>,
+    @InjectRepository(TransactionAnalysis)
+    private readonly analysisRepo: Repository<TransactionAnalysis>,
+  ) {}
 
   async analyzeCashFlow(transaction: Transaction, historicalTransactions: Transaction[]): Promise<CashFlowResult> {
     this.logger.log(`Analyzing cash flow for transaction ${transaction.id}`)
@@ -62,6 +74,27 @@ export class CashFlowService {
       insights,
       recommendations,
     }
+  }
+  async analyze(transaction: Transaction): Promise<TransactionAnalysis> {
+    const historical = await this.txRepo.find({ where: { userId: transaction.userId } });
+    const result = await this.analyzeCashFlow(transaction, historical);
+    const analysis = this.analysisRepo.create({
+    transactionId: transaction.id,
+    userId: transaction.userId,
+    type: AnalysisType.CASH_FLOW, 
+    score: result.score,
+    confidence: result.confidence,
+    riskLevel: result.riskLevel,
+    data: {
+      result: result.result,
+      features: result.features,
+      modelVersion: result.modelVersion,
+      insights: result.insights,
+      recommendations: result.recommendations,
+    },
+    transaction,
+  })
+    return this.analysisRepo.save(analysis);
   }
 
   private extractCashFlowFeatures(
@@ -383,7 +416,7 @@ export class CashFlowService {
   }
 
   private generateCashFlowInsights(cashFlowAnalysis: any, riskFactors: string[]): string[] {
-    const insights = []
+    const insights: string[]  = []
 
     if (cashFlowAnalysis.trend === "positive") {
       insights.push("Cash flow shows positive trend")
@@ -411,7 +444,7 @@ export class CashFlowService {
   }
 
   private generateCashFlowRecommendations(cashFlowAnalysis: any, riskFactors: string[]): string[] {
-    const recommendations = []
+    const recommendations: string[]  = []
 
     if (riskFactors.includes("Negative current cash flow")) {
       recommendations.push("Implement immediate cost reduction measures")
@@ -455,4 +488,5 @@ export class CashFlowService {
     const dates = transactions.map((t) => new Date(t.transactionDate).getTime())
     return (Math.max(...dates) - Math.min(...dates)) / (1000 * 60 * 60 * 24) // Days
   }
+  
 }

@@ -1,4 +1,5 @@
 // src/screening/services/risk-scoring.service.ts
+import { Injectable } from '@nestjs/common';
 @Injectable()
 export class RiskScoringService {
   calculateRiskScore(matches: any[]): number {

@@ -1,176 +1,83 @@
+import { ApiProperty } from "@nestjs/swagger"
+import { RuleType, RuleStatus } from "../entities/analysis-rule.entity"
+
 export class CreateRuleDto {
+  @ApiProperty()
   name: string
+
+  @ApiProperty({ required: false })
   description?: string
-  ruleType: string
-  conditions: Record<string, any>
-  actions: Record<string, any>
+
+  @ApiProperty({ enum: RuleType })
+  ruleType: RuleType
+
+  @ApiProperty({ enum: RuleStatus, required: false })
+  status?: RuleStatus
+
+  @ApiProperty({ type: 'array', description: 'conditions as JSON object or array' })
+  conditions: any
+
+  @ApiProperty({ required: false, description: 'actions' })
+  actions: any
+
+  @ApiProperty({ required: false })
   priority?: number
-  threshold?: number
-  createdBy: string
 }
 
 export class UpdateRuleDto {
+  @ApiProperty({ required: false })
   name?: string
-  description?: string
+
+  @ApiProperty({ enum: RuleType, required: false })
+  type?: RuleType
+
+  @ApiProperty({ required: false })
   conditions?: Record<string, any>
+
+  @ApiProperty({ required: false })
   actions?: Record<string, any>
-  priority?: number
-  threshold?: number
-  status?: string
-  updatedBy?: string
+
+  @ApiProperty({ enum: RuleStatus, required: false })
+  status?: RuleStatus
 }
 
 export class RuleTestDto {
+  @ApiProperty()
   transactionId: string
   includeHistorical?: boolean
   timeRangeMonths?: number
 }
-
-// Example rule configurations
-export const EXAMPLE_RULES = {
-  // High amount transaction rule
-  HIGH_AMOUNT_ALERT: {
-    name: "High Amount Transaction Alert",
-    description: "Alert for transactions above $5000",
-    ruleType: "risk_assessment",
-    conditions: {
-      type: "comparison",
-      field: "transaction.amount",
-      operator: "gt",
-      value: 5000,
-    },
-    actions: [
-      {
-        type: "setRiskLevel",
-        riskLevel: "high",
-        reason: "High transaction amount",
-      },
-      {
-        type: "sendAlert",
-        alertType: "high_amount",
-        message: "High amount transaction detected",
-        recipients: ["risk_team"],
-      },
-    ],
-    priority: 100,
-  },
-
-  // Velocity fraud detection
-  VELOCITY_FRAUD: {
-    name: "Transaction Velocity Fraud",
-    description: "Detect rapid successive transactions",
-    ruleType: "fraud_detection",
-    conditions: {
-      type: "frequency",
-      value: {
-        threshold: 5,
-        timeWindow: 1, // 1 hour
-      },
-    },
-    actions: [
-      {
-        type: "flagFraud",
-        fraudType: "velocity",
-        severity: "high",
-        reason: "Suspicious transaction velocity",
-      },
-      {
-        type: "requireApproval",
-        approvalType: "manual",
-        priority: "urgent",
-      },
-    ],
-    priority: 200,
-  },
-
-  // Merchant categorization
-  GROCERY_CATEGORIZATION: {
-    name: "Grocery Store Categorization",
-    description: "Auto-categorize grocery store transactions",
-    ruleType: "categorization",
-    conditions: {
-      type: "or",
-      conditions: [
-        {
-          type: "pattern",
-          field: "transaction.merchantName",
-          value: ".*(grocery|supermarket|walmart|target).*",
-        },
-        {
-          type: "comparison",
-          field: "transaction.merchantCategory",
-          operator: "eq",
-          value: "grocery_stores",
-        },
-      ],
-    },
-    actions: [
-      {
-        type: "categorize",
-        category: "Groceries",
-        subcategory: "Food & Household",
-      },
-    ],
-    priority: 50,
-  },
-
-  // Off-hours transaction monitoring
-  OFF_HOURS_MONITORING: {
-    name: "Off Hours Transaction Monitoring",
-    description: "Monitor transactions during unusual hours",
-    ruleType: "fraud_detection",
-    conditions: {
-      type: "and",
-      conditions: [
-        {
-          type: "time",
-          operator: "hourRange",
-          value: { start: 2, end: 5 },
-        },
-        {
-          type: "comparison",
-          field: "transaction.amount",
-          operator: "gt",
-          value: 500,
-        },
-      ],
-    },
-    actions: [
-      {
-        type: "addTag",
-        tags: ["off_hours", "suspicious_timing"],
-      },
-      {
-        type: "setRiskLevel",
-        riskLevel: "medium",
-        reason: "Off-hours high-value transaction",
-      },
-    ],
-    priority: 75,
-  },
-
-  // Statistical anomaly detection
-  AMOUNT_ANOMALY: {
-    name: "Transaction Amount Anomaly",
-    description: "Detect transactions with unusual amounts",
-    ruleType: "risk_assessment",
-    conditions: {
-      type: "statistical",
-      field: "transaction.amount",
-      operator: "zScore",
-      value: { threshold: 3 },
-    },
-    actions: [
-      {
-        type: "setScore",
-        scoreType: "anomaly_score",
-        score: 0.8,
-      },
-      {
-        type: "addTag",
-        tags: ["amount_anomaly"],
-      },
-    ],
-    priority: 60,
-  },
+export type AnalysisRule = {
+  id: string
+  name: string
+  description?: string
+  ruleType: RuleType
+  status: RuleStatus
+  conditions: any
+  actions: any
+  priority?: number
+  threshold?: number
+  version?: string
+  createdBy?: string
+  updatedBy?: string
+  createdAt?: Date
+  updatedAt?: Date
 }
+export const EXAMPLE_RULES = [
+  {
+    name: "High Value Transaction Alert",
+    ruleType: RuleType.CASH_FLOW,
+    conditions: { amount: { $gt: 1000 } },
+    actions: { flag: true, alert: "High value transaction" },
+    priority: 10,
+    status: RuleStatus.ACTIVE,
+  },
+  {
+    name: "Unusual Merchant Category",
+    ruleType: RuleType.CATEGORIZATION,
+    conditions: { merchantCategory: { $in: ["gambling", "crypto"] } },
+    actions: { flag: true, alert: "Unusual spending category" },
+    priority: 5,
+    status: RuleStatus.INACTIVE,
+  }
+]

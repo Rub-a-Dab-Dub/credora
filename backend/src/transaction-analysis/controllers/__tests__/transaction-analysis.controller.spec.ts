@@ -1,7 +1,6 @@
 import { Test, type TestingModule } from "@nestjs/testing"
 import { TransactionAnalysisController } from "../transaction-analysis.controller"
 import { TransactionAnalysisService } from "../../services/transaction-analysis.service"
-import { jest } from "@jest/globals"
 
 describe("TransactionAnalysisController", () => {
   let controller: TransactionAnalysisController
@@ -38,7 +37,7 @@ describe("TransactionAnalysisController", () => {
         fraudScore: 0.1,
       }
 
-      jest.spyOn(service, "analyzeTransaction").mockResolvedValue(mockAnalysis as any)
+      ;(service.analyzeTransaction as jest.Mock).mockResolvedValue(mockAnalysis)
 
       const result = await controller.analyzeTransaction(transactionId)
 
@@ -57,7 +56,7 @@ describe("TransactionAnalysisController", () => {
         riskAssessment: {},
       }
 
-      jest.spyOn(service, "analyzeUserTransactions").mockResolvedValue(mockAnalysis as any)
+      ;(service.analyzeUserTransactions as jest.Mock).mockResolvedValue(mockAnalysis)
 
       const result = await controller.analyzeUserTransactions(userId)
 
@@ -75,7 +74,7 @@ describe("TransactionAnalysisController", () => {
         recommendations: ["Pay bills on time"],
       }
 
-      jest.spyOn(service, "calculateCreditScore").mockResolvedValue(mockScore as any)
+      ;(service.calculateCreditScore as jest.Mock).mockResolvedValue(mockScore)
 
       const result = await controller.getCreditScore(userId)
 

@@ -1,9 +1,19 @@
-/ A service for implementing differential privacy using the Laplace mechanism.
-import { Injectable } from '@nestjs/common';
-import { LaplaceDistribution } from 'js-laplace-dist';
+// A service for implementing differential privacy using the Laplace mechanism.
 
 @Injectable()
 export class DifferentialPrivacyService {
+  /**
+   * Generate Laplace-distributed noise using inverse transform sampling.
+   *
+   * @param mu The mean of the distribution (usually 0 for DP).
+   * @param b The scale parameter (sensitivity / epsilon).
+   * @returns A Laplace-distributed random value.
+   */
+  private laplace(mu: number, b: number): number {
+    const u = Math.random() - 0.5; // uniform(-0.5, 0.5)
+    return mu - b * Math.sign(u) * Math.log(1 - 2 * Math.abs(u));
+  }
+
   /**
    * Adds Laplace noise to a numerical value to ensure differential privacy.
    *
@@ -14,8 +24,7 @@ export class DifferentialPrivacyService {
    */
   addNoise(value: number, epsilon: number, sensitivity: number): number {
     const scale = sensitivity / epsilon;
-    const distribution = new LaplaceDistribution({ mean: 0, scale });
-    const noise = distribution.next();
+    const noise = this.laplace(0, scale);
     return value + noise;
   }
 }
@@ -44,7 +53,7 @@ export class PseudonymizationService implements OnModuleInit {
    */
   pseudonymize(data: string): string {
     if (this.pseudonymMap.has(data)) {
-      return this.pseudonymMap.get(data);
+      return this.pseudonymMap.get(data)!;
     }
 
     // Use a secure, persistent salt in a real-world scenario.

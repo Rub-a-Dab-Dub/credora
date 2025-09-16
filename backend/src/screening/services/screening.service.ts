@@ -1,4 +1,16 @@
 // src/screening/services/screening.service.ts
+import { Injectable } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { ScreeningResult } from '../entities/screening-result.entity';
+import { ScreeningMatch } from '../entities/screening-match.entity';
+import { WatchlistService } from './watchlist.service';
+import { Watchlist } from '../entities/watchlist.entity';
+import { FuzzyMatchingService } from './fuzzy-matching.service';
+import { RiskScoringService } from './risk-scoring.service';
+import { InjectQueue } from '@nestjs/bull';
+import { Queue } from 'bull';
+
 @Injectable()
 export class ScreeningService {
   constructor(
@@ -36,7 +48,14 @@ export class ScreeningService {
     const watchlists = await this.watchlistService.getAllWatchlists();
 
     // Perform screening against each watchlist
-    const allMatches = [];
+    const allMatches: {
+      entry: number;
+      score: number;
+      matchedField: string;
+      watchlistId: string;
+      watchlistType: string;
+    }[] = [];
+    //const allMatches = [];
 
     for (const watchlist of watchlists) {
       const matches = await this.screenAgainstWatchlist(
@@ -98,6 +117,8 @@ export class ScreeningService {
         75, // threshold
       );
 
+      const matches: any[] = [];
+
       for (const match of watchlistMatches) {
         matches.push({
           ...match,
@@ -114,7 +135,7 @@ export class ScreeningService {
   private extractSearchTerms(
     screeningData: any,
   ): Array<{ field: string; value: string }> {
-    const terms = [];
+    const terms: { field: string; value: string }[] = [];
 
     if (screeningData.firstName) {
       terms.push({ field: 'firstName', value: screeningData.firstName });
@@ -135,7 +156,7 @@ export class ScreeningService {
     return terms;
   }
 
-  async getScreeningResult(id: string): Promise<ScreeningResult> {
+  async getScreeningResult(id: string): Promise<ScreeningResult | null> {
     return this.screeningResultRepository.findOne({
       where: { id },
       relations: ['matches'],
@@ -146,7 +167,7 @@ export class ScreeningService {
     id: string,
     reviewedBy: string,
     notes: string,
-  ): Promise<ScreeningResult> {
+  ): Promise<ScreeningResult | null> {
     await this.screeningResultRepository.update(id, {
       isFalsePositive: true,
       reviewedBy,

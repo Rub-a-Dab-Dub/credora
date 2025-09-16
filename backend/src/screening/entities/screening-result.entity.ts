@@ -1,4 +1,10 @@
 // src/screening/entities/screening-result.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+} from "typeorm";
 @Entity('screening_results')
 export class ScreeningResult {
   @PrimaryGeneratedColumn('uuid')

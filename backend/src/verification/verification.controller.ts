@@ -26,7 +26,7 @@ export class VerificationController {
   @Post('perform-verification')
   async performVerification(
     @Body() verificationData: VerificationRequestDto
-  ): Promise<VerificationResponseDto> {
+  ): Promise<VerificationResponseDto | undefined> {
     return this.verificationService.performVerification(verificationData);
   }
 }
