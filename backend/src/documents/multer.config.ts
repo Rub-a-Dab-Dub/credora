@@ -1,23 +1,17 @@
 import { MulterOptions } from '@nestjs/platform-express/multer/interfaces/multer-options.interface';
-import { extname } from 'path';
-
-// Allowed mime types
-const allowedMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+import { memoryStorage } from 'multer';
+import { ALLOWED_MIME_TYPES, MAX_FILE_SIZE_BYTES } from './config';
 
 export const multerConfig: MulterOptions = {
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB
+    fileSize: MAX_FILE_SIZE_BYTES,
   },
   fileFilter: (req, file, cb) => {
-    if (allowedMimeTypes.includes(file.mimetype)) {
+    if (ALLOWED_MIME_TYPES.includes((file.mimetype || '').toLowerCase())) {
       cb(null, true);
     } else {
-      cb(
-        new Error('Invalid file type. Only PDF, JPG, and PNG are allowed.'),
-        false,
-      );
+      cb(new Error('Invalid file type. Only PDF, JPG, and PNG are allowed.'), false);
     }
   },
-  // Optionally, you can customize storage here (e.g., memoryStorage for further processing)
-  storage: undefined, // Use default memory storage for now
+  storage: memoryStorage(),
 };

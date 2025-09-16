@@ -40,6 +40,25 @@ export class DocumentProcessing {
   @Column({ type: 'jsonb', nullable: true })
   duplicateCheck?: any;
 
+  // Storage metadata
+  @Column({ type: 'varchar', nullable: true })
+  bucket?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  objectKey?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  thumbnailKey?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  mimeType?: string;
+
+  @Column({ type: 'varchar', nullable: true })
+  etag?: string;
+
+  @Column({ type: 'int', nullable: true })
+  size?: number;
+
 
   @Column({ type: 'varchar', nullable: false })
   userId: string;

@@ -22,6 +22,8 @@
   },
   "dependencies": {
     "@nestjs/bull": "^11.0.3",
+    "@aws-sdk/client-s3": "^3.864.0",
+    "@influxdata/influxdb-client": "^1.35.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.0",
     "@nestjs/config": "^4.0.0",
@@ -57,6 +59,7 @@
     "reflect-metadata": "^0.2.0",
     "rxjs": "^7.8.0",
     "sharp": "^0.34.3",
+    "simple-statistics": "^7.8.8",
     "tesseract.js": "^6.0.1",
     "typeorm": "^0.3.25"
   },
