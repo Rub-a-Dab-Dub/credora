@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 // Import axios using require syntax to avoid TypeScript issues
-const axios = require('axios');
+
 import { ExperianAdapter } from './experian.adapter';
 import { EquifaxAdapter } from './equifax.adapter';
 import { TransUnionAdapter } from './transunion.adapter';
@@ -13,30 +13,31 @@ import * as CircuitBreaker from 'opossum';
  */
 export type CreditBureauType = 'experian' | 'equifax' | 'transunion';
 
+// Import axios normally
+import axios, { AxiosInstance } from 'axios';
+
 @Injectable()
 export class CreditBureauService {
   private readonly logger = new Logger(CreditBureauService.name);
   private readonly adapters: Record<CreditBureauType, CreditBureauAdapter>;
   private readonly circuitBreakers: Record<CreditBureauType, CircuitBreaker>;
-  
+
   constructor(private configService: ConfigService) {
-    // Create base axios instance with common configuration
+    // Instead of trying to clone handlers, we just reapply them
     const baseAxios = this.createBaseAxiosInstance();
-    
-    // Initialize adapters with environment-specific configurations
+
     this.adapters = {
       experian: new ExperianAdapter(
-        this.createBureauSpecificAxios(baseAxios, 'experian')
+        this.createBureauSpecificAxios(baseAxios, 'experian'),
       ),
       equifax: new EquifaxAdapter(
-        this.createBureauSpecificAxios(baseAxios, 'equifax')
+        this.createBureauSpecificAxios(baseAxios, 'equifax'),
       ),
       transunion: new TransUnionAdapter(
-        this.createBureauSpecificAxios(baseAxios, 'transunion')
+        this.createBureauSpecificAxios(baseAxios, 'transunion'),
       ),
     };
-    
-    // Set up circuit breakers for each adapter
+
     this.circuitBreakers = {
       experian: this.createCircuitBreaker('experian'),
       equifax: this.createCircuitBreaker('equifax'),
@@ -45,84 +46,101 @@ export class CreditBureauService {
   }
 
   /**
-   * Creates the base axios instance with interceptors for common behaviors
+   * Base axios instance with generic interceptors
    */
-  private createBaseAxiosInstance(): any {
+   private createBaseAxiosInstance(): AxiosInstance {
     const instance = axios.create({});
-    
-    // Request interceptor for common headers, auth, etc.
+
     instance.interceptors.request.use((config) => {
-      config.headers = {
-        ...config.headers,
-        'User-Agent': 'Credora/1.0',
-        'Content-Type': 'application/json',
-      };
+      if (config.headers?.set) {
+        config.headers.set('User-Agent', 'Credora/1.0');
+        config.headers.set('Content-Type', 'application/json');
+      } else {
+        // fallback if headers is a plain object
+        (config.headers as any) = {
+          ...config.headers,
+          'User-Agent': 'Credora/1.0',
+          'Content-Type': 'application/json',
+        };
+      }
       return config;
     });
-    
-    // Response interceptor for error handling, retries, etc.
+
     instance.interceptors.response.use(
       (response) => response,
       async (error) => {
-        if (error.response) {
-          // Server responded with error (4xx, 5xx)
-          if (error.response.status === 429) {
-            // Handle rate limiting with exponential backoff
-            const retryAfter = error.response.headers['retry-after'] || 1;
-            await new Promise(resolve => setTimeout(resolve, retryAfter * 1000));
-            return instance(error.config);
-          }
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'] || 1;
+          await new Promise((res) => setTimeout(res, retryAfter * 1000));
+          return instance(error.config);
         }
         return Promise.reject(error);
-      }
+      },
     );
-    
+
     return instance;
   }
-  
+
   /**
-   * Creates bureau-specific axios instance with appropriate auth/config
+   * Bureau-specific axios with base interceptors reapplied
    */
   private createBureauSpecificAxios(
-    baseAxios: any, 
-    bureau: CreditBureauType
-  ): any {
+    baseAxios: AxiosInstance,
+    bureau: CreditBureauType,
+  ): AxiosInstance {
     const instance = axios.create({});
-    
-    // Copy interceptors from base instance
-    const reqInterceptorId = baseAxios.interceptors.request.handlers[0].id;
-    const resInterceptorId = baseAxios.interceptors.response.handlers[0].id;
-    
-    instance.interceptors.request.use(
-      baseAxios.interceptors.request.handlers[reqInterceptorId].fulfilled,
-      baseAxios.interceptors.request.handlers[reqInterceptorId].rejected,
-    );
-    
-    instance.interceptors.response.use(
-      baseAxios.interceptors.response.handlers[resInterceptorId].fulfilled,
-      baseAxios.interceptors.response.handlers[resInterceptorId].rejected,
-    );
-    
-    // Add bureau-specific configuration
+
+    // Reapply the base interceptor logic
     instance.interceptors.request.use((config) => {
-      // Get credentials from config service
-      const apiKey = this.configService.get<string>(`creditBureau.${bureau}.apiKey`);
-      const isSandbox = this.configService.get<boolean>(`creditBureau.${bureau}.sandbox`, true);
-      
-      // Set base URL based on environment
-      config.baseURL = isSandbox 
-        ? this.configService.get<string>(`creditBureau.${bureau}.sandboxUrl`)
-        : this.configService.get<string>(`creditBureau.${bureau}.productionUrl`);
-      
-      // Add authentication
-      config.headers = {
-        ...config.headers,
-        'Authorization': `Bearer ${apiKey}`,
-      };
-      
+      if (config.headers?.set) {
+        config.headers.set('User-Agent', 'Credora/1.0');
+        config.headers.set('Content-Type', 'application/json');
+      } else {
+        (config.headers as any) = {
+          ...config.headers,
+          'User-Agent': 'Credora/1.0',
+          'Content-Type': 'application/json',
+        };
+      }
       return config;
     });
-    
+
+    instance.interceptors.response.use(
+      (response) => response,
+      async (error) => {
+        if (error.response?.status === 429) {
+          const retryAfter = error.response.headers['retry-after'] || 1;
+          await new Promise((res) => setTimeout(res, retryAfter * 1000));
+          return instance(error.config);
+        }
+        return Promise.reject(error);
+      },
+    );
+
+    // Add bureau-specific config
+    instance.interceptors.request.use((config) => {
+      const apiKey = this.configService.get<string>(`creditBureau.${bureau}.apiKey`);
+      const isSandbox = this.configService.get<boolean>(
+        `creditBureau.${bureau}.sandbox`,
+        true,
+      );
+
+      config.baseURL = isSandbox
+        ? this.configService.get<string>(`creditBureau.${bureau}.sandboxUrl`)
+        : this.configService.get<string>(`creditBureau.${bureau}.productionUrl`);
+
+      if (config.headers?.set) {
+        config.headers.set('Authorization', `Bearer ${apiKey}`);
+      } else {
+        (config.headers as any) = {
+          ...config.headers,
+          Authorization: `Bearer ${apiKey}`,
+        };
+      }
+
+      return config;
+    });
+
     return instance;
   }
   

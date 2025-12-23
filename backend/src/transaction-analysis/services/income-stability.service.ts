@@ -1,5 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { type Transaction, AnalysisType, RiskLevel, TransactionType } from "../entities"
+import { Transaction } from "../entities/transaction.entity"
+import { AnalysisType } from "../entities/transaction-analysis.entity"
+import { RiskLevel, TransactionType } from "../entities/transaction-analysis.entity"
 
 export interface IncomeStabilityResult {
   transactionId: string
@@ -86,7 +88,7 @@ export class IncomeStabilityService {
       uniqueIncomeSources: new Set(incomeTransactions.map((t) => t.merchantName || "unknown")).size,
       timeSpanDays: this.calculateTimeSpan(incomeTransactions),
       currentTransactionAmount: Number(transaction.amount),
-      isIncomeTransaction: transaction.type === TransactionType.CREDIT,
+      isIncomeTransaction: TransactionType.CREDIT,
     }
   }
 
@@ -149,7 +151,7 @@ export class IncomeStabilityService {
 
     // Group transactions by source (merchant name or description)
     incomeTransactions.forEach((transaction) => {
-      const source = transaction.merchantName || transaction.description || "Unknown Source"
+      const source = transaction.merchantName || transaction.rawDescription || "Unknown Source"
       if (!sourceMap.has(source)) {
         sourceMap.set(source, [])
       }
@@ -317,7 +319,7 @@ export class IncomeStabilityService {
   }
 
   private generateIncomeInsights(stabilityAnalysis: any, incomeSources: IncomeSource[]): string[] {
-    const insights = []
+    const insights: string[]  = []
 
     if (stabilityAnalysis.stabilityScore > 80) {
       insights.push("Very stable income pattern detected")
@@ -341,7 +343,7 @@ export class IncomeStabilityService {
   }
 
   private generateIncomeRecommendations(stabilityAnalysis: any): string[] {
-    const recommendations = []
+    const recommendations: string[]  = []
 
     if (stabilityAnalysis.stabilityScore < 50) {
       recommendations.push("Work on stabilizing income sources")

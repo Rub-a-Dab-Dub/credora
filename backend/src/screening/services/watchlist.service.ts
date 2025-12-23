@@ -1,4 +1,9 @@
 // src/screening/services/watchlist.service.ts
+import { Injectable } from '@nestjs/common';
+import { Watchlist } from "../entities/watchlist.entity";
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+
 @Injectable()
 export class WatchlistService {
   constructor(
@@ -7,8 +12,8 @@ export class WatchlistService {
   ) {}
 
   async createWatchlist(createWatchlistDto: any): Promise<Watchlist> {
-    const watchlist = this.watchlistRepository.create(createWatchlistDto);
-    return this.watchlistRepository.save(watchlist);
+    const watchlist = this.watchlistRepository.create(createWatchlistDto) as Partial<Watchlist>;
+    return await this.watchlistRepository.save(watchlist);
   }
 
   async getAllWatchlists(): Promise<Watchlist[]> {
@@ -19,7 +24,7 @@ export class WatchlistService {
     return this.watchlistRepository.find({ where: { type } });
   }
 
-  async updateWatchlist(id: string, updateData: any): Promise<Watchlist> {
+  async updateWatchlist(id: string, updateData: any): Promise<Watchlist | null> {
     await this.watchlistRepository.update(id, updateData);
     return this.watchlistRepository.findOne({ where: { id } });
   }
@@ -34,12 +39,14 @@ export class WatchlistService {
     source: string,
     data: any[],
   ): Promise<void> {
-    const watchlistEntries = data.map((entry) => ({
-      name: `${type}_${source}_${Date.now()}`,
-      type,
-      source,
-      data: entry,
-    }));
+    const watchlistEntries = data.map((entry) =>
+      this.watchlistRepository.create({
+        name: `${type}_${source}_${Date.now()}`,
+        type,
+        source,
+        data: entry,
+      }),
+    );
 
     await this.watchlistRepository.save(watchlistEntries);
   }

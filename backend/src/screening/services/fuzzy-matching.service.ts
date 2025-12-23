@@ -1,4 +1,6 @@
 // src/screening/services/fuzzy-matching.service.ts
+import { Injectable } from '@nestjs/common';
+
 @Injectable()
 export class FuzzyMatchingService {
   calculateSimilarity(str1: string, str2: string): number {
@@ -40,8 +42,7 @@ export class FuzzyMatchingService {
     threshold = 80,
   ): any[] {
     const normalizedSearch = this.normalizeString(searchTerm);
-    const matches = [];
-
+    const matches: { entry: any; score: number; matchedField: string }[] = [];
     for (const entry of watchlistEntries) {
       const normalizedEntry = this.normalizeString(entry.name);
       const score = this.calculateSimilarity(normalizedSearch, normalizedEntry);

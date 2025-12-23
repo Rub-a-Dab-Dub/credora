@@ -1,29 +1,10 @@
-import { Injectable, OnModuleInit, OnModuleDestroy } from '@nestjs/common';
+// src/redis/redis.service.ts
+import { Injectable, Inject, OnModuleDestroy } from '@nestjs/common';
 import Redis from 'ioredis';
-import { ConfigService } from '@nestjs/config';
 
 @Injectable()
-export class RedisService implements OnModuleInit, OnModuleDestroy {
-  incr(redisKey: string) {
-      throw new Error('Method not implemented.');
-  }
-  keys(pattern: string): Promise<string[]> {
-      throw new Error('Method not implemented.');
-  }
-  expire(redisKey: string, arg1: number) {
-      throw new Error('Method not implemented.');
-  }
-  private client: Redis;
-
-  constructor(private configService: ConfigService) {}
-
-  onModuleInit() {
-    this.client = new Redis({
-      host: this.configService.get('REDIS_HOST', 'localhost'),
-      port: this.configService.get('REDIS_PORT', 6379),
-      password: this.configService.get('REDIS_PASSWORD'),
-    });
-  }
+export class RedisService implements OnModuleDestroy {
+  constructor(@Inject('REDIS_CLIENT') private readonly client: Redis) {}
 
   onModuleDestroy() {
     this.client.disconnect();
@@ -48,5 +29,17 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   async exists(key: string): Promise<boolean> {
     const result = await this.client.exists(key);
     return result === 1;
+  }
+
+  async incr(key: string): Promise<number> {
+    return this.client.incr(key);
+  }
+
+  async keys(pattern: string): Promise<string[]> {
+    return this.client.keys(pattern);
+  }
+
+  async expire(key: string, seconds: number): Promise<void> {
+    await this.client.expire(key, seconds);
   }
 }

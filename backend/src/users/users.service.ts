@@ -34,6 +34,9 @@ export class UsersService {
     });
     return this.usersRepository.save(user);
   }
+  async findOne(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { id } });
+  }
 
   async getProfile(id: string) {
     const cacheKey = `user_profile:${id}`;

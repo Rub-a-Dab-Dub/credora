@@ -1,10 +1,11 @@
 import { Injectable, Inject } from '@nestjs/common';
+import Redis from 'ioredis';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cluster } from 'ioredis';
+// import { Cluster } from 'ioredis';
 
 @Injectable()
 export class CacheService {
-  constructor(@Inject(CACHE_MANAGER) private readonly cacheManager: Cluster) {}
+  constructor(@Inject('REDIS_CLIENT') private readonly redis: Redis) {}
 
   /**
    * Implements the cache-aside pattern.
@@ -13,19 +14,15 @@ export class CacheService {
    * @param ttl Time-to-live in seconds.
    * @returns The cached or freshly fetched data.
    */
-  async getOrSet<T>(
-    key: string,
-    fallback: () => Promise<T>,
-    ttl: number,
-  ): Promise<T> {
-    const cachedData = await this.cacheManager.get<T>(key);
+  async getOrSet<T>(key: string, fallback: () => Promise<T>, ttl: number): Promise<T> {
+    const cachedData = await this.redis.get(key);
 
     if (cachedData) {
-      return cachedData;
+      return JSON.parse(cachedData) as T;
     }
 
     const freshData = await fallback();
-    await this.cacheManager.set(key, freshData, ttl);
+    await this.redis.set(key, JSON.stringify(freshData), 'EX', ttl);
     return freshData;
   }
 
@@ -34,6 +31,6 @@ export class CacheService {
    * @param key The cache key to delete.
    */
   async invalidate(key: string): Promise<void> {
-    await this.cacheManager.del(key);
+    await this.redis.del(key);
   }
 }

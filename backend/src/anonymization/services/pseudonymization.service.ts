@@ -14,7 +14,7 @@ export class PseudonymizationService {
    */
   pseudonymize(data: string): string {
     if (this.pseudonymMap.has(data)) {
-      return this.pseudonymMap.get(data);
+      return this.pseudonymMap.get(data)!;
     }
 
     const salt = 'your-secure-and-secret-salt'; // A strong, unique salt is critical.

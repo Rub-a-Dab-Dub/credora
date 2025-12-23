@@ -1,8 +1,24 @@
-import { Controller, Get, Put, Body, Param, HttpException, HttpStatus, Logger } from "@nestjs/common"
+import {
+  Controller,
+  Get,
+  Put,
+  Body,
+  Param,
+  HttpException,
+  HttpStatus,
+  Logger,
+} from "@nestjs/common"
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from "@nestjs/swagger"
-import { type UpdateUserProfileDto, UserProfileResponseDto, ProfileInsightsDto } from "../dto/user-profile.dto"
-import type { Repository } from "typeorm"
-import type { UserFinancialProfile, TransactionAnalysis } from "../entities"
+import { InjectRepository } from "@nestjs/typeorm"
+import { Repository } from "typeorm"
+
+import {
+  UpdateUserProfileDto,
+  UserProfileResponseDto,
+  ProfileInsightsDto,
+} from "../dto/user-profile.dto"
+import { UserFinancialProfile } from "../entities/user-financial-profile.entity"
+import { TransactionAnalysis } from "../entities/transaction-analysis.entity"
 
 @ApiTags("User Profile")
 @Controller("user-profile")
@@ -10,7 +26,9 @@ export class UserProfileController {
   private readonly logger = new Logger(UserProfileController.name)
 
   constructor(
+    @InjectRepository(UserFinancialProfile)
     private readonly profileRepository: Repository<UserFinancialProfile>,
+    @InjectRepository(TransactionAnalysis)
     private readonly analysisRepository: Repository<TransactionAnalysis>,
   ) {}
 
@@ -22,23 +40,17 @@ export class UserProfileController {
     description: "User profile retrieved successfully",
     type: UserProfileResponseDto,
   })
-  @ApiResponse({ status: 404, description: "User profile not found" })
-  async getUserProfile(@Param("userId") userId: string): Promise<UserProfileResponseDto> {
+  async getUserProfile(
+    @Param("userId") userId: string,
+  ): Promise<UserProfileResponseDto> {
     try {
-      const profile = await this.profileRepository.findOne({
-        where: { userId },
-      })
-
+      const profile = await this.profileRepository.findOne({ where: { userId } })
       if (!profile) {
         throw new HttpException("User profile not found", HttpStatus.NOT_FOUND)
       }
-
       return profile
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-
+      if (error instanceof HttpException) throw error
       this.logger.error(`Error retrieving profile for user ${userId}:`, error)
       throw new HttpException("Failed to retrieve user profile", HttpStatus.INTERNAL_SERVER_ERROR)
     }
@@ -57,25 +69,16 @@ export class UserProfileController {
     @Body() updateDto: UpdateUserProfileDto,
   ): Promise<UserProfileResponseDto> {
     try {
-      let profile = await this.profileRepository.findOne({
-        where: { userId },
-      })
+      let profile = await this.profileRepository.findOne({ where: { userId } })
 
       if (!profile) {
-        // Create new profile if it doesn't exist
-        profile = this.profileRepository.create({
-          userId,
-          ...updateDto,
-        })
+        profile = this.profileRepository.create({ userId, ...updateDto })
       } else {
-        // Update existing profile
         Object.assign(profile, updateDto)
       }
 
       const savedProfile = await this.profileRepository.save(profile)
-
       this.logger.log(`Updated profile for user ${userId}`)
-
       return savedProfile
     } catch (error) {
       this.logger.error(`Error updating profile for user ${userId}:`, error)
@@ -91,47 +94,41 @@ export class UserProfileController {
     description: "Profile insights retrieved successfully",
     type: ProfileInsightsDto,
   })
-  async getProfileInsights(@Param("userId") userId: string): Promise<ProfileInsightsDto> {
+  async getProfileInsights(
+    @Param("userId") userId: string,
+  ): Promise<ProfileInsightsDto> {
     try {
-      const profile = await this.profileRepository.findOne({
-        where: { userId },
-      })
-
+      const profile = await this.profileRepository.findOne({ where: { userId } })
       if (!profile) {
         throw new HttpException("User profile not found", HttpStatus.NOT_FOUND)
       }
 
-      // Get recent analyses for additional insights
       const recentAnalyses = await this.analysisRepository.find({
         where: { userId },
         order: { createdAt: "DESC" },
         take: 50,
       })
 
-      // Generate insights
-      const insights = this.generateProfileInsights(profile, recentAnalyses)
-
-      return insights
+      return this.generateProfileInsights(profile, recentAnalyses)
     } catch (error) {
-      if (error instanceof HttpException) {
-        throw error
-      }
-
+      if (error instanceof HttpException) throw error
       this.logger.error(`Error generating insights for user ${userId}:`, error)
       throw new HttpException("Failed to generate profile insights", HttpStatus.INTERNAL_SERVER_ERROR)
     }
   }
 
-  private generateProfileInsights(profile: UserFinancialProfile, analyses: TransactionAnalysis[]): ProfileInsightsDto {
+  private generateProfileInsights(
+    profile: UserFinancialProfile,
+    analyses: TransactionAnalysis[],
+  ): ProfileInsightsDto {
     const insights: string[] = []
     const recommendations: string[] = []
     const riskFactors: string[] = []
     const strengths: string[] = []
     const improvements: string[] = []
 
-    let healthScore = 70 // Base score
+    let healthScore = 70
 
-    // Analyze income stability
     if (profile.incomeStability === "stable") {
       strengths.push("Stable income pattern")
       healthScore += 10
@@ -141,7 +138,6 @@ export class UserProfileController {
       healthScore -= 15
     }
 
-    // Analyze debt-to-income ratio
     if (profile.debtToIncomeRatio) {
       if (profile.debtToIncomeRatio < 0.3) {
         strengths.push("Healthy debt-to-income ratio")
@@ -153,7 +149,6 @@ export class UserProfileController {
       }
     }
 
-    // Analyze spending behavior
     if (profile.spendingBehavior === "conservative") {
       strengths.push("Conservative spending approach")
       healthScore += 5
@@ -163,7 +158,6 @@ export class UserProfileController {
       healthScore -= 10
     }
 
-    // Analyze risk scores
     if (profile.riskScore && profile.riskScore > 70) {
       riskFactors.push("High overall risk score")
       healthScore -= 15
@@ -174,16 +168,17 @@ export class UserProfileController {
       recommendations.push("Review recent transactions for suspicious activity")
     }
 
-    // Analyze recent transaction patterns
-    const highRiskAnalyses = analyses.filter((a) => a.riskLevel === "high" || a.riskLevel === "critical")
+    const highRiskAnalyses = analyses.filter(
+      (a) => a.riskLevel === "high" || a.riskLevel === "critical",
+    )
     if (highRiskAnalyses.length > 5) {
       riskFactors.push("Multiple high-risk transactions detected")
       recommendations.push("Review transaction patterns and security measures")
     }
 
-    // Generate general insights
     if (profile.monthlyIncome && profile.monthlyExpenses) {
-      const savingsRate = (profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome
+      const savingsRate =
+        (profile.monthlyIncome - profile.monthlyExpenses) / profile.monthlyIncome
       if (savingsRate > 0.2) {
         strengths.push("Good savings rate")
         insights.push(`Saving ${(savingsRate * 100).toFixed(1)}% of income`)
@@ -193,7 +188,6 @@ export class UserProfileController {
       }
     }
 
-    // Add general recommendations
     if (improvements.length === 0 && riskFactors.length === 0) {
       recommendations.push("Continue maintaining healthy financial habits")
     }
@@ -206,10 +200,7 @@ export class UserProfileController {
       userId: profile.userId,
       healthScore: Math.max(0, Math.min(100, healthScore)),
       insights,
-      recommendations,
-      riskFactors,
-      strengths,
-      improvements,
+      recommendations
     }
   }
 }

@@ -1,4 +1,11 @@
 // src/screening/entities/
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+} from "typeorm";
+import { ScreeningResult } from "./screening-result.entity";
 @Entity('screening_matches')
 export class ScreeningMatch {
   @PrimaryGeneratedColumn('uuid')

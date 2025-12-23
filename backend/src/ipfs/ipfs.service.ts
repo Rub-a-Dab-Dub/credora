@@ -1,21 +1,17 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable,Inject, Logger } from '@nestjs/common';
+import axios from 'axios';
 
 @Injectable()
 export class IpfsService {
   private readonly logger = new Logger(IpfsService.name);
-  private ipfsClients: any[] = [];
-  constructor(private ipfsClient?: any) {
-    // Support multiple IPFS nodes for redundant pinning
-    const nodeUrls = (process.env.IPFS_NODE_URLS || process.env.IPFS_NODE_URL || 'http://localhost:5001').split(',');
-    this.ipfsClients = nodeUrls.map(url => this.ipfsClient || require('ipfs-http-client').create({ url: url.trim() }));
-  }
 
-  // Remove constructor logic for ipfs client
+  constructor(
+    @Inject('IPFS_CLIENTS') private readonly ipfsClients: any[],
+  ) {}
 
   async healthCheck(): Promise<boolean> {
     try {
-  const ipfs = this.ipfsClient || (await import('ipfs-http-client')).create({ url: process.env.IPFS_NODE_URL || 'http://localhost:5001' });
-  const id = await ipfs.id();
+      const id = await this.ipfsClients[0].id();
       this.logger.log(`Connected to IPFS node: ${id.id}`);
       return true;
     } catch (error) {
@@ -23,6 +19,7 @@ export class IpfsService {
       return false;
     }
   }
+
 
   async pinDocument(content: Buffer | string, retries = 3): Promise<string | null> {
     let lastError;
@@ -57,7 +54,6 @@ export class IpfsService {
   // IPFS Cluster integration (basic)
   async pinToCluster(content: Buffer | string, clusterApiUrl: string): Promise<string | null> {
     // Example: POST to IPFS Cluster REST API
-    const axios = require('axios');
     try {
       const response = await axios.post(`${clusterApiUrl}/add`, content, {
         headers: { 'Content-Type': 'application/octet-stream' },
@@ -93,7 +89,7 @@ export class IpfsService {
 
   async getPinStatus(cid: string): Promise<boolean> {
     try {
-  const ipfs = this.ipfsClient || (await import('ipfs-http-client')).create({ url: process.env.IPFS_NODE_URL || 'http://localhost:5001' });
+  const ipfs = this.ipfsClients[0];
       for await (const pin of ipfs.pin.ls({ paths: cid })) {
         if (pin.cid.toString() === cid) {
           return true;
@@ -108,8 +104,8 @@ export class IpfsService {
 
   async unpinDocument(cid: string): Promise<boolean> {
     try {
-  const ipfs = this.ipfsClient || (await import('ipfs-http-client')).create({ url: process.env.IPFS_NODE_URL || 'http://localhost:5001' });
-      await ipfs.pin.rm(cid);
+  const ipfs = this.ipfsClients[0]
+  await ipfs.pin.rm(cid);
       this.logger.log(`Unpinned document with CID: ${cid}`);
       return true;
     } catch (error) {

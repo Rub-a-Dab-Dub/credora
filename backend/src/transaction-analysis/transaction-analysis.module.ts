@@ -2,21 +2,23 @@ import { Module } from "@nestjs/common"
 import { TypeOrmModule } from "@nestjs/typeorm"
 
 // Entities
-import { Transaction, TransactionAnalysis, UserFinancialProfile, AnalysisRule } from "./entities"
+import { Transaction } from "./entities/transaction.entity"
+
+import {TransactionAnalysis, UserFinancialProfile, AnalysisRule } from "./entities"
 
 // Services
 import { TransactionAnalysisService } from "./services/transaction-analysis.service"
 import { CategorizationService } from "./services/categorization.service"
-import { SpendingPatternService } from "./services/spending-pattern.service"
+//import { SpendingPatternService } from "./services/spending-pattern.service"
 import { IncomeStabilityService } from "./services/income-stability.service"
 import { CashFlowService } from "./services/cash-flow.service"
-import { BehavioralScoringService } from "./services/behavioral-scoring.service"
+//import { BehavioralScoringService } from "./services/behavioral-scoring.service"
 import { FraudDetectionService } from "./services/fraud-detection.service"
-import { RiskAssessmentService } from "./services/risk-assessment.service"
+//import { RiskAssessmentService } from "./services/risk-assessment.service"
 import { TimeSeriesAnalysisService } from "./services/time-series-analysis.service"
 import { RuleEngineService } from "./services/rule-engine.service"
-import { RuleConditionEvaluator } from "./services/rule-condition-evaluator.service"
-import { RuleActionExecutor } from "./services/rule-action-executor.service"
+//import { RuleConditionEvaluator } from "./services/rule-condition-evaluator.service"
+//import { RuleActionExecutor } from "./services/rule-action-executor.service"
 
 // Controllers
 import { TransactionAnalysisController } from "./controllers/transaction-analysis.controller"
@@ -30,25 +32,25 @@ import { UserProfileController } from "./controllers/user-profile.controller"
     // Core Analysis Services
     TransactionAnalysisService,
     CategorizationService,
-    SpendingPatternService,
+    //SpendingPatternService,
     IncomeStabilityService,
     CashFlowService,
-    BehavioralScoringService,
+    //BehavioralScoringService,
     FraudDetectionService,
-    RiskAssessmentService,
+    //RiskAssessmentService,
     TimeSeriesAnalysisService,
 
     // Rule Engine Services
     RuleEngineService,
-    RuleConditionEvaluator,
-    RuleActionExecutor,
+    //RuleConditionEvaluator,
+    //RuleActionExecutor,
   ],
   exports: [
     TransactionAnalysisService,
     RuleEngineService,
     CategorizationService,
     FraudDetectionService,
-    RiskAssessmentService,
+    //RiskAssessmentService,
   ],
 })
 export class TransactionAnalysisModule {}

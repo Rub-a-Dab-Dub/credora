@@ -11,7 +11,8 @@ import {
   AnalysisStatsDto,
 } from "../dto/transaction-analysis.dto"
 import type { Repository } from "typeorm"
-import { type Transaction, TransactionAnalysis } from "../entities"
+import { Transaction} from "../entities/transaction.entity"
+import { TransactionAnalysis } from "../entities/transaction-analysis.entity"
 
 @ApiTags("Transaction Analysis")
 @Controller("transaction-analysis")
@@ -53,6 +54,7 @@ export class TransactionAnalysisController {
 
       return {
         ...result,
+        analyses: [result], 
         executionTime,
       }
     } catch (error) {
@@ -87,7 +89,7 @@ export class TransactionAnalysisController {
       })
 
       const totalExecutionTime = Date.now() - startTime
-      const successfulAnalyses = results.filter((r) => r.analyses.length > 0).length
+      const successfulAnalyses = results.filter((r) => r.type.length > 0).length
       const failedAnalyses = results.length - successfulAnalyses
 
       this.logger.log(
@@ -161,7 +163,7 @@ export class TransactionAnalysisController {
 
       analyses.forEach((analysis) => {
         // Count by type
-        analysesByType[analysis.analysisType] = (analysesByType[analysis.analysisType] || 0) + 1
+        analysesByType[analysis.type] = (analysesByType[analysis.type] || 0) + 1
 
         // Count by risk level
         if (analysis.riskLevel) {
@@ -175,7 +177,7 @@ export class TransactionAnalysisController {
       })
 
       const averageConfidence = totalAnalyses > 0 ? totalConfidence / totalAnalyses : 0
-      const lastAnalysisDate = analyses.length > 0 ? analyses[0].createdAt : null
+      const lastAnalysisDate = analyses.length > 0 ? analyses[0].createdAt : undefined
 
       return {
         userId,

@@ -4,6 +4,7 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  Index,
 } from 'typeorm';
 import { BankToken } from './bank-token.entity';
 
@@ -12,19 +13,20 @@ export class BankAccount {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column()
-  providerAccountId: string; // provider-specific account id
+  @Index() // queries by providerAccountId will be faster
+  @Column({ type: 'varchar', nullable: false, unique: true })
+  providerAccountId: string; // provider-specific account id (e.g. Plaid account_id)
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   name: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   mask?: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   type?: string;
 
-  @Column()
+  @Column({ type: 'varchar', nullable: true })
   subtype?: string;
 
   @Column('decimal', { precision: 18, scale: 2, nullable: true })
@@ -33,10 +35,10 @@ export class BankAccount {
   @Column('decimal', { precision: 18, scale: 2, nullable: true })
   availableBalance?: number;
 
-  @ManyToOne(() => BankToken)
+  @ManyToOne(() => BankToken, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'bankTokenId' })
-  bankToken: BankToken;
+  bankToken?: BankToken;
 
-  @Column()
-  bankTokenId: string;
+  @Column({ type: 'uuid', nullable: true })
+  bankTokenId?: string;
 }

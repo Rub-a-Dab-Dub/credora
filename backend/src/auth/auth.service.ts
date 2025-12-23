@@ -8,6 +8,8 @@ import {
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { v4 as uuidv4 } from 'uuid';
+import { hash, compare } from 'bcrypt';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 import { authenticator } from 'otplib';

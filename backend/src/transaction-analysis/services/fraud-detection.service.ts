@@ -1,5 +1,9 @@
 import { Injectable, Logger } from "@nestjs/common"
-import { type Transaction, AnalysisType, RiskLevel } from "../entities"
+import { type Transaction } from "../entities/transaction.entity"
+import { TransactionType } from "../entities/transaction-analysis.entity"
+import { AnalysisType } from "../entities/transaction-analysis.entity"
+import { RiskLevel } from "../entities/transaction-analysis.entity"
+
 
 export interface FraudDetectionResult {
   transactionId: string
@@ -277,11 +281,11 @@ export class FraudDetectionService {
     // Check for unusual channel usage
     const channelFrequency = {}
     historicalTransactions.forEach((t) => {
-      channelFrequency[t.channel] = (channelFrequency[t.channel] || 0) + 1
+      channelFrequency[t.channel|| "nochannel"] = (channelFrequency[t.channel|| "nochannel"] || 0) + 1
     })
 
     const totalTransactions = historicalTransactions.length
-    const currentChannelFreq = channelFrequency[transaction.channel] || 0
+    const currentChannelFreq = channelFrequency[transaction.channel|| "nochannel"] || 0
     const channelUsageRate = currentChannelFreq / totalTransactions
 
     if (channelUsageRate < 0.1 && totalTransactions > 20) {
@@ -327,7 +331,7 @@ export class FraudDetectionService {
   }
 
   private generateFraudInsights(fraudProbability: number, riskFactors: string[], anomalies: string[]): string[] {
-    const insights = []
+    const insights: string[]  = []
 
     if (fraudProbability > 0.7) {
       insights.push("High fraud probability detected - immediate review recommended")
@@ -347,7 +351,7 @@ export class FraudDetectionService {
   }
 
   private generateFraudRecommendations(fraudProbability: number, riskFactors: string[]): string[] {
-    const recommendations = []
+    const recommendations: string[]  = []
 
     if (fraudProbability > 0.8) {
       recommendations.push("Block transaction and require manual verification")

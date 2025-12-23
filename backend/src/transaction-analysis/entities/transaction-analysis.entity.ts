@@ -1,25 +1,27 @@
-import {
-  Entity,
-  PrimaryGeneratedColumn,
-  Column,
-  CreateDateColumn,
-  UpdateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  Index,
-} from "typeorm"
+import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, ManyToOne, Index } from "typeorm"
 import { Transaction } from "./transaction.entity"
+
+export enum TransactionType {
+  DEBIT = "debit",
+  CREDIT = "credit",
+  TRANSFER = "transfer",
+  PAYMENT = "payment",
+  REFUND = "refund",
+  FEE = "fee",
+  INTEREST = "interest",
+  OTHER = "other",
+}
+
 
 export enum AnalysisType {
   CATEGORIZATION = "categorization",
-  SPENDING_PATTERN = "spending_pattern",
-  INCOME_STABILITY = "income_stability",
   CASH_FLOW = "cash_flow",
-  DEBT_TO_INCOME = "debt_to_income",
+  INCOME_STABILITY = "income_stability",
+  SPENDING_PATTERN = "spending_pattern",
   BEHAVIORAL_SCORING = "behavioral_scoring",
   FRAUD_DETECTION = "fraud_detection",
   RISK_ASSESSMENT = "risk_assessment",
-  TREND_ANALYSIS = "trend_analysis",
+  TIME_SERIES = "time_series",
 }
 
 export enum RiskLevel {
@@ -30,8 +32,8 @@ export enum RiskLevel {
 }
 
 @Entity("transaction_analyses")
-@Index(["transactionId", "analysisType"])
-@Index(["userId", "analysisType", "createdAt"])
+@Index(["transactionId", "type"])
+@Index(["userId", "createdAt"])
 export class TransactionAnalysis {
   @PrimaryGeneratedColumn("uuid")
   id: string
@@ -40,46 +42,32 @@ export class TransactionAnalysis {
   transactionId: string
 
   @Column({ name: "user_id" })
-  @Index()
   userId: string
 
-  @Column({ type: "enum", enum: AnalysisType, name: "analysis_type" })
-  analysisType: AnalysisType
+  @Column({ type: "enum", enum: AnalysisType })
+  type: AnalysisType
 
   @Column({ type: "decimal", precision: 5, scale: 4, nullable: true })
-  confidence: number // ML confidence score (0-1)
+  score?: number
 
-  @Column({ type: "enum", enum: RiskLevel, name: "risk_level", nullable: true })
+  @Column({ type: "decimal", precision: 5, scale: 4, default: 0.5 })
+  confidence: number
+
+  @Column({ type: "enum", enum: RiskLevel, default: RiskLevel.LOW, name: "risk_level" })
   riskLevel: RiskLevel
 
-  @Column({ type: "decimal", precision: 10, scale: 2, nullable: true })
-  score: number // Numerical score for the analysis
-
-  @Column({ type: "jsonb" })
-  result: Record<string, any> // Detailed analysis results
-
   @Column({ type: "jsonb", nullable: true })
-  features: Record<string, any> // ML features used
+  data?: Record<string, any>
 
-  @Column({ name: "model_version", nullable: true })
-  modelVersion: string
+ 
+  @ManyToOne(() => Transaction, (tx) => (tx as any).analyses, { onDelete: "CASCADE" })
+  transaction: Transaction
 
-  @Column({ name: "rule_version", nullable: true })
-  ruleVersion: string
-
-  @Column({ type: "text", nullable: true })
-  notes: string
-
-  @CreateDateColumn({ name: "created_at" })
+  @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt: Date
 
-  @UpdateDateColumn({ name: "updated_at" })
+  @UpdateDateColumn({ name: "updated_at", type: "timestamptz" })
   updatedAt: Date
-
-  @ManyToOne(
-    () => Transaction,
-    (transaction) => transaction.analyses,
-  )
-  @JoinColumn({ name: "transaction_id" })
-  transaction: Transaction
 }
+
+

@@ -1,4 +1,7 @@
 // src/screening/processors/screening.processor.ts
+import { Process, Processor } from '@nestjs/bull';
+import { Job } from 'bull';
+import { ScreeningService } from '../services/screening.service';
 @Processor('screening-queue')
 export class ScreeningProcessor {
   constructor(private screeningService: ScreeningService) {}

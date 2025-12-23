@@ -1,4 +1,12 @@
 // src/screening/entities/watchlist.entity.ts
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from "typeorm";
 @Entity('watchlists')
 export class Watchlist {
   @PrimaryGeneratedColumn('uuid')
